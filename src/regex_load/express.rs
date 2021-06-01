@@ -1,10 +1,10 @@
+use crate::regex_load::express_types::sub_express::SubExpress;
+use crate::regex_load::express_types::conbin_express::ConbinExpress;
+use crate::regex_load::express_types::special_express::SpecialExpress;
 use crate::regex_iter::RegexIter;
-use crate::regex_load::conbin_express::ConbinExpress;
 use crate::regex_load::load_follow_charact;
-use crate::regex_load::special_express::SpecialExpress;
-use crate::regex_load::sub_express::SubExpress;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq,Clone)]
 pub enum Express {
     //普通空白
     NormalEmpty,
@@ -19,16 +19,16 @@ pub enum Express {
 }
 
 impl Express {
-    pub fn new_regex(regex_iter: &mut RegexIter) -> Vec<Express> {
+    pub fn new_regex(regex_iter: &mut RegexIter) -> Option<Express> {
         match regex_iter.has_next() {
             true => {
                 if let Some(exp) = Express::express_capture(regex_iter) {
                     ConbinExpress::capture_or(regex_iter, exp)
                 } else {
-                    Vec::new()
+                    None
                 }
             }
-            false => Vec::new(),
+            false => None,
         }
     }
 
@@ -37,7 +37,7 @@ impl Express {
         match load_follow_charact(regex_iter) {
             Some(follow_c) => {
                 //try look as spectial charct
-                match SpecialExpress::get_type(&follow_c) {
+                match SpecialExpress::get_out_type(&follow_c) {
                     Some(se) => Some(Express::Special(se)),
                     None => match follow_c.data {
                         c if c == '(' && !follow_c.trans_sign => {

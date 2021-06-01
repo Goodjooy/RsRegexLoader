@@ -1,9 +1,9 @@
-use crate::regex_load::pre_look_charact;
 use crate::regex_iter::RegexIter;
 use crate::regex_load::express::Express;
+use crate::regex_load::express_types::special_express::SpecialExpress;
 use crate::regex_load::load_follow_charact;
-use crate::regex_load::special_express::SpecialExpress;
-#[derive(Debug, PartialEq)]
+use crate::regex_load::pre_look_charact;
+#[derive(Debug, PartialEq,Clone)]
 pub enum ConbinExpress {
     Or(Box<[Express; 2]>),
     In(Vec<Express>, bool),
@@ -34,7 +34,7 @@ impl ConbinExpress {
                         break;
                     }
                     // special sign
-                    match SpecialExpress::get_type(&c) {
+                    match SpecialExpress::get_in_type(&c) {
                         Some(se) => expresses.push(Express::Special(se)),
                         //not a special sign ,as Normal
                         None => {
@@ -74,9 +74,8 @@ impl ConbinExpress {
         Some(ConbinExpress::In(expresses, revent))
     }
 
-    pub fn capture_or(iter: &mut RegexIter, previde: Express) -> Vec<Express> {
-        let mut expresses = vec![];
-        match pre_look_charact(iter) {
+    pub fn capture_or(iter: &mut RegexIter, previde: Express) -> Option<Express> {
+        let expresses = match pre_look_charact(iter) {
             Some(fc) => {
                 // or sign
                 if !fc.trans_sign && fc.data == "|" {
@@ -88,15 +87,13 @@ impl ConbinExpress {
                     let or_exp = [previde, next_express];
                     let or_exp = Box::new(or_exp);
                     let or_exp = ConbinExpress::Or(or_exp);
-                    expresses.push(Express::Conbin(or_exp));
+                    Some(Express::Conbin(or_exp))
                 } else {
-                    expresses.push(previde);
+                    Some(previde)
                 }
             }
-            None => {
-                expresses.push(previde);
-            }
-        }
+            None => Some(previde),
+        };
 
         expresses
     }
@@ -105,8 +102,8 @@ impl ConbinExpress {
 #[cfg(test)]
 mod conbin_test {
     use crate::regex_iter::RegexIter;
-    use crate::regex_load::conbin_express::ConbinExpress;
-    use crate::regex_load::conbin_express::Express;
+    use crate::regex_load::express_types::conbin_express::ConbinExpress;
+    use crate::regex_load::express_types::conbin_express::Express;
     #[test]
     fn caputure_in_normal() {
         let mut iter = RegexIter::new("12345\\S]");

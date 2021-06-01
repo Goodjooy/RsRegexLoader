@@ -1,14 +1,14 @@
 use crate::regex_iter::RegexIter;
-use crate::regex_load::express::Express;
+use crate::regex_load::limited_express::LimitExrepss;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct SubExpress {
-    expresses: Vec<Express>,
+    expresses: Vec<LimitExrepss>,
     mode: SubExpressMode,
 }
 
-#[derive(Debug, PartialEq)]
-enum SubExpressMode {
+#[derive(Debug, PartialEq, Clone)]
+pub enum SubExpressMode {
     Capture,
     NoCapture,
 
@@ -37,15 +37,23 @@ impl SubExpress {
                         regex_iter.next();
                         break Some(SubExpress { expresses, mode });
                     } else {
-                        let mut new_exps = Express::new_regex(regex_iter);
-
-                        expresses.append(&mut new_exps);
+                        match LimitExrepss::new(regex_iter) {
+                            Some(exp) => expresses.push(exp),
+                            None => return None,
+                        };
                     }
                 }
                 None => return None,
             }
             //break Some(SubExpress { expresses, mode });
         }
+    }
+
+    pub fn get_mode(self) -> (Self, SubExpressMode) {
+        (self.clone(), self.mode)
+    }
+    pub fn get_expresses(self) -> (Self, Vec<LimitExrepss>) {
+        (self.clone(), self.expresses)
     }
 }
 impl SubExpressMode {
@@ -96,7 +104,7 @@ impl SubExpressMode {
 #[cfg(test)]
 mod sub_express {
     use crate::regex_iter::RegexIter;
-    use crate::regex_load::sub_express::SubExpress;
+    use crate::regex_load::express_types::sub_express::SubExpress;
     #[test]
     fn sub_normal() {
         let mut iter = RegexIter::new("?:abc)");
@@ -108,7 +116,7 @@ mod sub_express {
 
     #[test]
     fn sub_inside_anorther() {
-        let mut iter = RegexIter::new("?:ab(?:bbc)c)");
+        let mut iter = RegexIter::new("?:ab(?:bbc)c[\\d]+)");
 
         let v = SubExpress::capture_sub(&mut iter);
 
